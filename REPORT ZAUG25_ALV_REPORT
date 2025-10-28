@@ -1,0 +1,253 @@
+REPORT ZAUG25_ALV_REPORT.
+*Sales Report
+*date-----> input
+*vbap--erdat---input
+*vbap--table
+*order no
+* EVENT
+
+
+
+*1.data declare
+   PARAMETERS : p_erdat type vbak-erdat DEFAULT sy-datum,  " Single i/p
+                p_vbeln TYPE vbak-vbeln.
+
+   TYPES   : BEGIN OF TY_FINAL,
+        VBELN TYPE VBAP-VBELN,
+        POSNR TYPE VBAP-POSNR,
+        MATNR TYPE VBAP-MATNR,
+        MATWA TYPE VBAP-MATWA,
+        PMATN TYPE VBAP-PMATN,
+        NETWR TYPE VBAP-NETWR,
+        ERDAT TYPE VBAK-ERDAT,
+        ERZET TYPE VBAK-ERZET,
+        ERNAM TYPE VBAK-ERNAM,
+        ANGDT TYPE VBAK-ANGDT,
+        KUNNR TYPE VBAK-KUNNR,
+END OF TY_FINAL.
+
+
+data : it_final TYPE TABLE OF ty_final,
+       wa_final TYPE ty_final,
+       it_fcat TYPE SLIS_T_FIELDCAT_ALV,
+       wa_fcat TYPE SLIS_FIELDCAT_ALV,
+       WA_LAY  TYPE SLIS_LAYOUT_ALV.
+   data : "wa_vbak TYPE vbak,
+          v_erdat TYPE vbak-erdat,
+          v_date TYPE dats,
+          it_vbap TYPE TABLE OF vbap.
+
+   SELECT-OPTIONS s_erdat FOR v_erdat."wa_vbak-erdat.   " Range i/p
+*2 data process
+* * 1 Event ini
+
+INITIALIZATION.  " before sel scr ,  default i/p
+
+S_ERDAT-SIGN   = 'I'.
+S_ERDAT-OPTION = 'BT'.
+S_ERDAT-HIGH   = SY-DATUM.
+S_ERDAT-LOW    = SY-DATUM - 7.
+APPEND S_ERDAT.
+
+*AUTHORITY-CHECK OBJECT 'V_VBAK_VKO'
+*         ID 'VKORG' FIELD '__________'
+*         ID 'VTWEG' FIELD '__________'
+*         ID 'SPART' FIELD '__________'
+*         ID 'ACTVT' FIELD '__________'.
+*IF SY-SUBRC <> 0.
+** Implement a suitable exception handling here
+*ENDIF.
+*
+*
+*AUTHORITY-CHECK OBJECT 'V_VBAK_AAT'
+*         ID 'AUART' FIELD '__________'
+*         ID 'ACTVT' FIELD '__________'.
+*IF SY-SUBRC <> 0.
+** Implement a suitable exception handling here
+*ENDIF.
+
+AT SELECTION-SCREEN.  " I/P VALIDATE ' i/p screen , before o/p
+
+  IF  S_ERDAT-HIGH > sy-datum.
+
+   MESSAGE 'Please Enter valid date' TYPE 'E'.
+
+  ENDIF.
+
+
+  START-OF-SELECTION.  "   WHEN INI at sel scr mandt, data fetch
+
+*   vbap"
+*    vbap-erdat
+*    vbak-vbeln----->vbap-vbeln
+*     mara
+*     kna1
+
+
+
+
+  SELECT *
+        FROM vbap
+        into TABLE it_vbap
+*         WHERE erdat = p_erdat.    1st assignment  single i/p
+          WHERE erdat in S_ERDAT.    " 2nd ass -->range i/p
+
+IF sy-SUBRC = 0 or it_vbap is NOT INITIAL.
+
+  SELECT *
+          FROM vbak
+          INTO TABLE @data(it_vbak)
+          FOR ALL ENTRIES IN @it_vbap
+          WHERE vbeln = @it_vbap-vbeln.
+
+
+** kna1-kunnr  = vbak-kunnr
+**mara-matnr   = vbap-matnr
+*adrc-adrnr  = kna1-adrnr
+
+
+ENDIF.
+
+
+*it_final = it_vbap.
+
+LOOP AT it_vbap INTO data(wa_vbap).   " line item table
+
+  wa_final-VBELN = wa_vbap-VBELN.
+  wa_final-POSNR = wa_vbap-POSNR.
+  wa_final-MATNR = wa_vbap-MATNR.
+  wa_final-MATWA = wa_vbap-MATWA.
+  wa_final-PMATN = wa_vbap-PMATN.
+  wa_final-NETWR = wa_vbap-NETWR.
+
+READ TABLE it_vbak INTO DATA(wa_vbak) with key vbeln = wa_vbap-vbeln.
+
+    IF sy-subrc = 0.
+
+     wa_final-ERDAT = wa_vbak-ERDAT.
+     wa_final-ERZET = wa_vbak-ERZET.
+     wa_final-ERNAM = wa_vbak-ERNAM.
+     wa_final-ANGDT = wa_vbak-ANGDT.
+     wa_final-KUNNR = wa_vbak-KUNNR.
+
+    ENDIF.
+
+
+
+
+  APPEND wa_final to it_final.
+
+
+ENDLOOP.
+
+*IT_FINAL---> IT_VBAK,IT_VBAP
+
+
+
+  end-of-SELECTION. " end data sel "optionl ,,  logical database   HR data  0102909
+
+wa_fcat-FIELDNAME = 'VBELN'.
+wa_fcat-SELTEXT_M = 'Order No'.
+wa_fcat-KEY      = 'X'.
+wa_fcat-HOTSPOT = 'X'.
+wa_fcat-NO_ZERO = 'X'.
+
+APPEND wa_fcat to it_fcat.
+CLEAR wa_fcat.
+
+wa_fcat-FIELDNAME = 'POSNR'.
+wa_fcat-SELTEXT_M = 'Item No'.
+wa_fcat-EMPHASIZE = 'X'.
+wa_fcat-LZERO   = 'X'.
+
+APPEND wa_fcat to it_fcat.
+CLEAR wa_fcat.
+
+
+wa_fcat-FIELDNAME = 'MATNR'.
+wa_fcat-SELTEXT_M = 'Material No'.
+wa_fcat-OUTPUTLEN = 20.
+wa_fcat-EMPHASIZE = 'C601'.
+WA_FCAT-JUST     = 'C'.
+APPEND wa_fcat to it_fcat.
+CLEAR wa_fcat.
+
+wa_fcat-FIELDNAME = 'ERDAT'.
+wa_fcat-SELTEXT_M = 'Created on'.
+wa_fcat-NO_OUT    = 'X'.
+
+APPEND wa_fcat to it_fcat.
+CLEAR wa_fcat.
+
+
+wa_fcat-FIELDNAME = 'ERNAM'.
+wa_fcat-SELTEXT_M = 'Created by'.
+
+APPEND wa_fcat to it_fcat.
+CLEAR wa_fcat.
+
+wa_fcat-FIELDNAME = 'NETWR'.
+wa_fcat-SELTEXT_M = 'Net Value'.
+wa_fcat-DO_SUM    = 'X'.
+wa_fcat-EDIT     = 'X'.
+
+APPEND wa_fcat to it_fcat.
+CLEAR wa_fcat.
+
+
+WA_LAY-COLWIDTH_OPTIMIZE = 'X'.
+WA_LAY-ZEBRA             = 'X'.
+
+
+CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+ EXPORTING
+*   I_INTERFACE_CHECK                 = ' '
+*   I_BYPASSING_BUFFER                = ' '
+*   I_BUFFER_ACTIVE                   = ' '
+   I_CALLBACK_PROGRAM                = 'ZAUG25_ALV_REPORT'
+*   I_CALLBACK_PF_STATUS_SET          = ' '
+*   I_CALLBACK_USER_COMMAND           = ' '
+*   I_CALLBACK_TOP_OF_PAGE            = ' '
+*   I_CALLBACK_HTML_TOP_OF_PAGE       = ' '
+*   I_CALLBACK_HTML_END_OF_LIST       = ' '
+*   I_STRUCTURE_NAME                  =  'VBAP'
+*   I_BACKGROUND_ID                   = ' '
+*   I_GRID_TITLE                      =
+*   I_GRID_SETTINGS                   =
+   IS_LAYOUT                         = WA_LAY
+   IT_FIELDCAT                        = it_fcat
+*   IT_EXCLUDING                      =
+*   IT_SPECIAL_GROUPS                 =
+*   IT_SORT                           =
+*   IT_FILTER                         =
+*   IS_SEL_HIDE                       =
+*   I_DEFAULT                         = 'X'
+   I_SAVE                            = 'A'
+*   IS_VARIANT                        =
+*   IT_EVENTS                         =
+*   IT_EVENT_EXIT                     =
+*   IS_PRINT                          =
+*   IS_REPREP_ID                      =
+*   I_SCREEN_START_COLUMN             = 0
+*   I_SCREEN_START_LINE               = 0
+*   I_SCREEN_END_COLUMN               = 0
+*   I_SCREEN_END_LINE                 = 0
+*   I_HTML_HEIGHT_TOP                 = 0
+*   I_HTML_HEIGHT_END                 = 0
+*   IT_ALV_GRAPHICS                   =
+*   IT_HYPERLINK                      =
+*   IT_ADD_FIELDCAT                   =
+*   IT_EXCEPT_QINFO                   =
+*   IR_SALV_FULLSCREEN_ADAPTER        =
+* IMPORTING
+*   E_EXIT_CAUSED_BY_CALLER           =
+*   ES_EXIT_CAUSED_BY_USER            =
+  TABLES
+    T_OUTTAB                          = IT_FINAL
+ EXCEPTIONS
+   PROGRAM_ERROR                     = 1
+   OTHERS                            = 2
+          .
+IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+ENDIF.
