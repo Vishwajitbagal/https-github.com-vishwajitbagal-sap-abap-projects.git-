@@ -9,44 +9,44 @@ REPORT ZAUG25_ALV_REPORT.
 
 
 *1.data declare
-   PARAMETERS : p_erdat type vbak-erdat DEFAULT sy-datum,  " Single i/p
-                p_vbeln TYPE vbak-vbeln.
+   PARAMETERS : p_erdat type vbak-erdat DEFAULT sy-datum,  Single date input (default = today’s date).
+                p_vbeln TYPE vbak-vbeln. Single order number input.
 
    TYPES   : BEGIN OF TY_FINAL,
-        VBELN TYPE VBAP-VBELN,
-        POSNR TYPE VBAP-POSNR,
-        MATNR TYPE VBAP-MATNR,
-        MATWA TYPE VBAP-MATWA,
-        PMATN TYPE VBAP-PMATN,
-        NETWR TYPE VBAP-NETWR,
-        ERDAT TYPE VBAK-ERDAT,
-        ERZET TYPE VBAK-ERZET,
-        ERNAM TYPE VBAK-ERNAM,
-        ANGDT TYPE VBAK-ANGDT,
-        KUNNR TYPE VBAK-KUNNR,
+        VBELN TYPE VBAP-VBELN,  "Sales Document No.
+        POSNR TYPE VBAP-POSNR,  "Item Number
+        MATNR TYPE VBAP-MATNR,  " Material No.
+        MATWA TYPE VBAP-MATWA,  " Alternative Material
+        PMATN TYPE VBAP-PMATN,  " Higher-Level Item Material
+        NETWR TYPE VBAP-NETWR,  " Net Value
+        ERDAT TYPE VBAK-ERDAT,  " Created On
+        ERZET TYPE VBAK-ERZET,  " Created Time
+        ERNAM TYPE VBAK-ERNAM,   " Created By
+        ANGDT TYPE VBAK-ANGDT,   " Quotation Date
+        KUNNR TYPE VBAK-KUNNR,    " Customer Number
 END OF TY_FINAL.
 
 
-data : it_final TYPE TABLE OF ty_final,
-       wa_final TYPE ty_final,
-       it_fcat TYPE SLIS_T_FIELDCAT_ALV,
-       wa_fcat TYPE SLIS_FIELDCAT_ALV,
-       WA_LAY  TYPE SLIS_LAYOUT_ALV.
+data : it_final TYPE TABLE OF ty_final,  " Final output table
+       wa_final TYPE ty_final,            " Work area for final table
+       it_fcat TYPE SLIS_T_FIELDCAT_ALV,  " ALV Field catalog internal table
+       wa_fcat TYPE SLIS_FIELDCAT_ALV,    " Work area for field catalog
+       WA_LAY  TYPE SLIS_LAYOUT_ALV.      " ALV layout structure
    data : "wa_vbak TYPE vbak,
           v_erdat TYPE vbak-erdat,
           v_date TYPE dats,
           it_vbap TYPE TABLE OF vbap.
 
-   SELECT-OPTIONS s_erdat FOR v_erdat."wa_vbak-erdat.   " Range i/p
+   SELECT-OPTIONS s_erdat FOR v_erdat."wa_vbak-erdat.   " Date range input for selection screen
 *2 data process
 * * 1 Event ini
 
-INITIALIZATION.  " before sel scr ,  default i/p
+INITIALIZATION.  " before sel scr ,  default i/p " Executes before selection screen display
 
 S_ERDAT-SIGN   = 'I'.
 S_ERDAT-OPTION = 'BT'.
-S_ERDAT-HIGH   = SY-DATUM.
-S_ERDAT-LOW    = SY-DATUM - 7.
+S_ERDAT-HIGH   = SY-DATUM.        " Today
+S_ERDAT-LOW    = SY-DATUM - 7.    " 7 days before
 APPEND S_ERDAT.
 
 *AUTHORITY-CHECK OBJECT 'V_VBAK_VKO'
@@ -66,7 +66,7 @@ APPEND S_ERDAT.
 ** Implement a suitable exception handling here
 *ENDIF.
 
-AT SELECTION-SCREEN.  " I/P VALIDATE ' i/p screen , before o/p
+AT SELECTION-SCREEN.  " I/P VALIDATE ' i/p screen , before o/p " Input validation before report executes
 
   IF  S_ERDAT-HIGH > sy-datum.
 
@@ -75,7 +75,7 @@ AT SELECTION-SCREEN.  " I/P VALIDATE ' i/p screen , before o/p
   ENDIF.
 
 
-  START-OF-SELECTION.  "   WHEN INI at sel scr mandt, data fetch
+  START-OF-SELECTION.  "   WHEN INI at sel scr mandt, data fetch," Main logic for data fetching
 
 *   vbap"
 *    vbap-erdat
@@ -148,16 +148,16 @@ ENDLOOP.
 
 wa_fcat-FIELDNAME = 'VBELN'.
 wa_fcat-SELTEXT_M = 'Order No'.
-wa_fcat-KEY      = 'X'.
-wa_fcat-HOTSPOT = 'X'.
-wa_fcat-NO_ZERO = 'X'.
+wa_fcat-KEY      = 'X'.       " Key column
+wa_fcat-HOTSPOT = 'X'.        " Clickable field
+wa_fcat-NO_ZERO = 'X'.        " No leading zeros
 
 APPEND wa_fcat to it_fcat.
 CLEAR wa_fcat.
 
 wa_fcat-FIELDNAME = 'POSNR'.
 wa_fcat-SELTEXT_M = 'Item No'.
-wa_fcat-EMPHASIZE = 'X'.
+wa_fcat-EMPHASIZE = 'X'.      " Highlight column
 wa_fcat-LZERO   = 'X'.
 
 APPEND wa_fcat to it_fcat.
@@ -167,14 +167,14 @@ CLEAR wa_fcat.
 wa_fcat-FIELDNAME = 'MATNR'.
 wa_fcat-SELTEXT_M = 'Material No'.
 wa_fcat-OUTPUTLEN = 20.
-wa_fcat-EMPHASIZE = 'C601'.
-WA_FCAT-JUST     = 'C'.
+wa_fcat-EMPHASIZE = 'C601'.    " Custom color
+WA_FCAT-JUST     = 'C'.        " Center alignment
 APPEND wa_fcat to it_fcat.
 CLEAR wa_fcat.
 
 wa_fcat-FIELDNAME = 'ERDAT'.
 wa_fcat-SELTEXT_M = 'Created on'.
-wa_fcat-NO_OUT    = 'X'.
+wa_fcat-NO_OUT    = 'X'.       " Hide column from output
 
 APPEND wa_fcat to it_fcat.
 CLEAR wa_fcat.
@@ -188,15 +188,15 @@ CLEAR wa_fcat.
 
 wa_fcat-FIELDNAME = 'NETWR'.
 wa_fcat-SELTEXT_M = 'Net Value'.
-wa_fcat-DO_SUM    = 'X'.
-wa_fcat-EDIT     = 'X'.
+wa_fcat-DO_SUM    = 'X'.      " Show total sum
+wa_fcat-EDIT     = 'X'.       " Editable field
 
 APPEND wa_fcat to it_fcat.
 CLEAR wa_fcat.
 
 
-WA_LAY-COLWIDTH_OPTIMIZE = 'X'.
-WA_LAY-ZEBRA             = 'X'.
+WA_LAY-COLWIDTH_OPTIMIZE = 'X'.  " Auto-adjust column width
+WA_LAY-ZEBRA             = 'X'.  " Alternate row colors
 
 
 CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
@@ -250,4 +250,5 @@ CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
           .
 IF SY-SUBRC <> 0.
 * Implement suitable error handling here
+ENDIF.
 ENDIF.
